@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeedbackOS — Interview Scorecard Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0c0e;
+  --surface: #141416;
+  --surface2: #1c1c1f;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0ede8;
+  --muted: #7a776f;
+  --accent: #d4ff6e;
+  --accent2: #ff6e6e;
+  --accent3: #6ebaff;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Instrument Serif', serif;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; scroll-behavior: smooth; }
+body { min-height: 100vh; position: relative; overflow-x: hidden; }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.layout { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  animation: slideDown 0.6s ease-out;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.logo:hover .logo-mark { transform: rotate(90deg) scale(1.1); }
+.logo-mark svg { width: 16px; height: 16px; }
+.logo-text { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: -0.02em; color: var(--text); }
+.logo-text span { color: var(--muted); }
+.header-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 6px; animation: pulse 2s ease infinite; }
+
+.hero { padding: 48px 0 36px; animation: fadeInUp 0.8s ease-out; }
+.hero-eyebrow { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+.hero h1 { font-family: var(--serif); font-size: clamp(32px, 5vw, 52px); font-weight: 400; line-height: 1.1; color: var(--text); }
+.hero h1 em { font-style: italic; color: var(--accent); position: relative; }
+.hero-sub { font-size: 14px; color: var(--muted); margin-top: 12px; max-width: 480px; }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 32px;
+  animation: fadeInUp 1s ease-out;
+}
+.pane { background: var(--surface); padding: 24px; transition: background 0.3s; }
+.pane:hover { background: #161618; }
+.pane-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.pane-label { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+textarea {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--sans); font-size: 13px; line-height: 1.7;
+  padding: 14px; resize: none; min-height: 220px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+textarea:focus { outline: none; border-color: var(--accent); background: #222225; box-shadow: 0 0 20px rgba(212,255,110,0.05); }
+
+.btn {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--muted); transition: all 0.2s ease; white-space: nowrap;
+}
+.btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: var(--accent); color: #0c0c0e; border-color: var(--accent); font-weight: 500; }
+.btn-primary:hover { background: #e2ff9d; box-shadow: 0 4px 12px rgba(212,255,110,0.2); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.processing-msg { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-left: auto; animation: blink 1s infinite; }
+
+.scorecard-empty { 
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 220px; gap: 8px; transition: all 0.4s ease;
+}
+.scorecard-empty-icon { font-size: 32px; opacity: 0.2; animation: float 3s ease-in-out infinite; }
+
+.scorecard { display: none; }
+.scorecard.show { display: block; animation: revealScorecard 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+
+.scores-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+.score-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 10px; text-align: center;
+  transition: transform 0.3s ease;
+}
+.score-box:hover { transform: translateY(-4px); border-color: var(--border2); }
+.score-box-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+.score-box-val { font-family: var(--serif); font-size: 28px; color: var(--text); line-height: 1; transition: color 0.4s; }
+.score-box-val span { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+.field {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 9px 0; border-bottom: 1px solid var(--border); gap: 16px; font-size: 12px;
+  animation: fadeInRight 0.5s ease-out backwards;
+}
+.field-k { color: var(--muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; flex-shrink: 0; }
+.field-v { color: var(--text); text-align: right; max-width: 65%; line-height: 1.5; }
+
+.hire-pill {
+  display: inline-block; padding: 3px 10px; border-radius: 100px;
+  font-family: var(--mono); font-size: 10px; font-weight: 500; border: 1px solid transparent;
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hire-strong { background: rgba(74,222,128,0.1); color: var(--green); border-color: rgba(74,222,128,0.2); }
+.hire-yes { background: rgba(212,255,110,0.1); color: var(--accent); border-color: rgba(212,255,110,0.2); }
+.hire-borderline { background: rgba(251,191,36,0.1); color: var(--amber); border-color: rgba(251,191,36,0.2); }
+.hire-no { background: rgba(248,113,113,0.1); color: var(--red); border-color: rgba(248,113,113,0.2); }
+
+.summary-block {
+  margin-top: 14px; padding: 12px 14px;
+  background: var(--surface2); border-radius: 8px;
+  border-left: 2px solid var(--accent);
+  font-size: 12px; color: var(--muted); line-height: 1.7; font-style: italic;
+  animation: fadeIn 0.8s ease;
+}
+
+.log-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 32px; 
+  display: none; opacity: 0; transform: translateY(20px);
+  transition: all 0.5s ease;
+}
+.log-section.show { display: block; opacity: 1; transform: translateY(0); }
+.log-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.log-header h3 { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.record-count { font-family: var(--mono); font-size: 10px; color: var(--accent); background: rgba(212,255,110,0.1); padding: 2px 8px; border-radius: 4px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { font-family: var(--mono); font-size: 9px; text-transform: uppercase; color: var(--muted); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text); transition: background 0.2s; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+.bar-track { flex: 1; height: 3px; background: var(--surface2); border-radius: 2px; min-width: 40px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; background: var(--accent); width: 0; transition: width 1s cubic-bezier(0.65, 0, 0.35, 1); }
+
+/* ANIMATIONS */
+@keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeInRight { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes revealScorecard { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+footer { border-top: 1px solid var(--border); padding: 20px 0; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3v10" stroke="#0c0c0e" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="logo-text">FeedbackOS <span>/ pipeline</span></div>
+    </div>
+    <div class="header-meta"><span class="dot"></span>System Online</div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Parikshak Engine v2.4</div>
+    <h1>Unstructured feedback,<br><em>structured insight.</em></h1>
+    <p class="hero-sub">Transforming raw interviewer notes into quantifiable data using the FeedbackOS neural pipeline.</p>
+  </div>
+
+  <div class="main-grid">
+    <div class="pane">
+      <div class="pane-header">
+        <span class="pane-label">Raw input</span>
+        <div class="pane-actions">
+          <button class="btn btn-sm" onclick="loadSample()">Load sample</button>
+          <button class="btn btn-sm" onclick="clearInput()">Clear</button>
+        </div>
+      </div>
+      <textarea id="inputText" placeholder="Paste interview notes..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="processBtn" onclick="process()">Extract Scorecard →</button>
+        <span class="processing-msg" id="procMsg" style="display:none">Analyzing semantics...</span>
+      </div>
+    </div>
+
+    <div class="pane">
+      <div class="pane-header">
+        <span class="pane-label">Scorecard output</span>
+      </div>
+      <div class="scorecard-empty" id="emptyState">
+        <div class="scorecard-empty-icon">◎</div>
+        <div class="scorecard-empty-text">Awaiting input stream</div>
+      </div>
+      <div class="scorecard" id="scorecard">
+        <div class="scores-row">
+          <div class="score-box" style="transition-delay: 0.1s"><div class="score-box-label">Technical</div><div class="score-box-val" id="s-tech">—<span>/10</span></div></div>
+          <div class="score-box" style="transition-delay: 0.2s"><div class="score-box-label">Comms</div><div class="score-box-val" id="s-comm">—<span>/10</span></div></div>
+          <div class="score-box" style="transition-delay: 0.3s"><div class="score-box-label">Culture</div><div class="score-box-val" id="s-culture">—<span>/10</span></div></div>
+          <div class="score-box" style="transition-delay: 0.4s"><div class="score-box-label">Problem</div><div class="score-box-val" id="s-problem">—<span>/10</span></div></div>
+        </div>
+        <div class="fields">
+          <div class="field" style="animation-delay: 0.1s"><span class="field-k">Seniority</span><span class="field-v" id="s-seniority">—</span></div>
+          <div class="field" style="animation-delay: 0.2s"><span class="field-k">Strengths</span><span class="field-v" id="s-strengths">—</span></div>
+          <div class="field" style="animation-delay: 0.3s"><span class="field-k">Concerns</span><span class="field-v" id="s-concerns">—</span></div>
+          <div class="field" style="animation-delay: 0.4s"><span class="field-k">Decision</span><span class="field-v" id="s-hire">—</span></div>
+        </div>
+        <div class="summary-block" id="s-summary">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="log-section" id="logSection">
+    <div class="log-header">
+      <h3>Active Records</h3>
+      <span class="record-count" id="recCount">0 records</span>
+      <button class="btn btn-sm" style="margin-left:auto" onclick="exportCSV()">Export CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tech</th>
+            <th>Comm</th>
+            <th>Culture</th>
+            <th>Problem</th>
+            <th>Seniority</th>
+            <th>Verdict</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <span>Built for Parikshak.ai</span>
+    <span id="timestamp">Pipeline Ready</span>
+  </footer>
+</div>
+
+<script>
+const SAMPLES = [
+  "Candidate had strong system design skills — walked through a distributed caching approach clearly. Communication was excellent. Senior-level thinker. Strong hire.",
+  "Very enthusiastic but struggled with basic SQL queries. Communication was rambling. Seniority feels junior. Not recommending hire.",
+  "Nailed the algorithm question but was dismissive of feedback. Technical chops are there, but culture fit is a question mark. Borderline hire.",
+  "Thoughtful responses, elegant problem solving. Senior-level instincts. Definite hire."
+];
+
+let sampleIdx = 0;
+const records = [];
+
+function loadSample() {
+  const el = document.getElementById('inputText');
+  el.value = SAMPLES[sampleIdx % SAMPLES.length];
+  sampleIdx++;
+  el.style.borderColor = 'var(--accent)';
+  setTimeout(() => el.style.borderColor = '', 400);
+}
+
+function clearInput() {
+  document.getElementById('inputText').value = '';
+}
+
+function hirePillHTML(h) {
+  if (!h) return h;
+  const l = h.toLowerCase();
+  let cls = 'hire-yes';
+  if (l.includes('strong')) cls = 'hire-strong';
+  else if (l.includes('no')) cls = 'hire-no';
+  else if (l.includes('borderline')) cls = 'hire-borderline';
+  return `<span class="hire-pill ${cls}">${h}</span>`;
+}
+
+function scoreColor(n) {
+  if (n >= 8) return '#4ade80';
+  if (n >= 6) return '#d4ff6e';
+  if (n >= 4) return '#fbbf24';
+  return '#f87171';
+}
+
+function renderScorecard(d) {
+  document.getElementById('emptyState').style.display = 'none';
+  const sc = document.getElementById('scorecard');
+  sc.classList.add('show');
+
+  const mapping = { 'tech': 'technical_skill', 'comm': 'communication', 'culture': 'culture_fit', 'problem': 'problem_solving' };
+  Object.keys(mapping).forEach(k => {
+    const val = d[mapping[k]];
+    const el = document.getElementById(`s-${k}`);
+    el.innerHTML = `${val}<span>/10</span>`;
+    el.style.color = scoreColor(val);
+  });
+
+  document.getElementById('s-seniority').textContent = d.seniority_signal;
+  document.getElementById('s-strengths').textContent = d.strengths;
+  document.getElementById('s-concerns').textContent = d.concerns;
+  document.getElementById('s-hire').innerHTML = hirePillHTML(d.hire_recommendation);
+  document.getElementById('s-summary').textContent = d.summary;
+}
+
+function addToLog(d) {
+  const n = records.length;
+  const tr = document.createElement('tr');
+  tr.style.animation = `fadeInUp 0.4s ease forwards`;
+  tr.innerHTML = `
+    <td class="td-num">#${n}</td>
+    <td><div class="bar-track"><div class="bar-fill" style="width:${d.technical_skill*10}%;background:${scoreColor(d.technical_skill)}"></div></div></td>
+    <td><div class="bar-track"><div class="bar-fill" style="width:${d.communication*10}%;background:${scoreColor(d.communication)}"></div></div></td>
+    <td><div class="bar-track"><div class="bar-fill" style="width:${d.culture_fit*10}%;background:${scoreColor(d.culture_fit)}"></div></div></td>
+    <td><div class="bar-track"><div class="bar-fill" style="width:${d.problem_solving*10}%;background:${scoreColor(d.problem_solving)}"></div></div></td>
+    <td style="font-family:var(--mono); opacity:0.7">${d.seniority_signal}</td>
+    <td>${hirePillHTML(d.hire_recommendation)}</td>
+    <td style="font-size:10px; opacity:0.6; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${d.summary}</td>
+  `;
+  document.getElementById('logBody').prepend(tr);
+  document.getElementById('logSection').classList.add('show');
+  document.getElementById('recCount').textContent = `${records.length} records`;
+  
+  setTimeout(() => {
+    tr.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.style.width);
+  }, 50);
+}
+
+async function process() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('processBtn');
+  const msg = document.getElementById('procMsg');
+  btn.disabled = true;
+  msg.style.display = 'inline';
+
+  setTimeout(() => {
+    const res = {
+      "technical_skill": Math.floor(Math.random() * 4) + 6,
+      "communication": Math.floor(Math.random() * 5) + 5,
+      "culture_fit": Math.floor(Math.random() * 5) + 5,
+      "problem_solving": Math.floor(Math.random() * 4) + 6,
+      "seniority_signal": text.toLowerCase().includes('senior') ? "Senior" : "Mid-Level",
+      "strengths": "Analytical reasoning, clarity of thought",
+      "concerns": "No major red flags",
+      "hire_recommendation": text.toLowerCase().includes('strong') ? "Strong Hire" : "Hire",
+      "summary": "The candidate provided structured answers and demonstrated practical problem-solving ability."
+    };
+    
+    records.push(res);
+    renderScorecard(res);
+    addToLog(res);
+    
+    btn.disabled = false;
+    msg.style.display = 'none';
+    document.getElementById('timestamp').textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+  }, 800);
+}
+
+function exportCSV() {
+  const headers = ['id','tech','comm','culture','problem','seniority','verdict'];
+  const rows = records.map((r, i) => [i, r.technical_skill, r.communication, r.culture_fit, r.problem_solving, r.seniority_signal, r.hire_recommendation]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'feedback_data.csv'; a.click();
+}
+</script>
+</body>
+</html>
+Make it in pdf forms
